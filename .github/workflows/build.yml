@@ -22,7 +22,8 @@ jobs:
         arch: [arm64, arm, x64, x86]
 
     name: "android"
-    runs-on: ubuntu-latest
+    #runs-on: ubuntu-latest
+    runs-on: Ubuntu 22.04.4 LTS
     steps:
       - name: Show ubuntu libraries
         run: |
@@ -207,105 +208,3 @@ jobs:
           asset_name: v8-android.zip
           tag: ${{ github.ref }}
 
-  build_linux:
-    permissions:
-      contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x64]
-
-    name: "linux"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Clone DepotTools
-        run: |
-            cd ..
-            DEPOT_TOOLS_PATH=$(pwd)/depot_tools
-            git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-            echo "DEPOT_TOOLS_PATH=$DEPOT_TOOLS_PATH" >> $GITHUB_ENV
-            echo "DEPOT_TOOLS_PATH=$DEPOT_TOOLS_PATH"
-
-      - name: Print env
-        run: |
-          echo "${{ env.DEPOT_TOOLS_PATH }}"
-          ls -l ${{ env.DEPOT_TOOLS_PATH }}
-
-      - name: Install gn
-        run: |
-          wget https://chrome-infra-packages.appspot.com/dl/gn/gn/linux-amd64/+/latest -O ./gn.zip
-          unzip gn.zip -d buildtools/linux64/
-
-      - name: Install ninja
-        run: |
-          if ! command -v ninja &> /dev/null; then
-              echo "Ninja not found, installing..."
-              # sudo apt update
-              sudo apt install ninja-build
-          else
-              echo "Ninja is already installed."
-          fi
-          which ninja
-          NINJA_PATH=$(which ninja)
-          CURRENT_DIR=$(pwd)
-          mkdir -p ${CURRENT_DIR}/third_party/ninja
-          ln -s ${NINJA_PATH} ${CURRENT_DIR}/third_party/ninja/ninja
-
-      - name: Install linux sysroot
-        run: |
-          if [[ "${{ matrix.arch }}" == "arm64" || "${{ matrix.arch }}" == "x64" ]];then
-            INSTALL_SYSROOT_ARCH="amd64"
-          else
-            INSTALL_SYSROOT_ARCH="i386"
-          fi
-
-          python3 build/linux/sysroot_scripts/install-sysroot.py --arch=${INSTALL_SYSROOT_ARCH}
-
-      - name: Install builtin clang
-        run: |
-          ./tools/clang/scripts/update.py
-
-      - name: Build ${{ matrix.arch }}
-        run: |
-          export PATH=${{ env.DEPOT_TOOLS_PATH }}:$PATH
-          which gn
-          CURRENT_DIR=$(pwd)
-          
-          ./build-linux.sh ${{ matrix.arch }}
-
-      - name: Copy to dist folder
-        run: |
-          ls -l ./out/linux
-          echo "---------------------"
-          ls -l ./out/linux/obj
-          mkdir dist
-          cp ./out/linux/d8 ./dist/
-          cp ./out/linux/obj/libv8_monolith.a ./dist/
-          cp -r ./include ./dist/
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: v8-linux-${{ matrix.arch }}
-          path: ./dist
-
-      - name: Pack dist files
-        if: github.event_name == 'release'
-        uses: thedoctor0/zip-release@a24011d8d445e4da5935a7e73c1f98e22a439464
-        with:
-          type: 'zip'
-          directory: 'dist'
-          path: '.'
-          filename: 'v8-linux.zip'
-
-      - name: Upload to Release
-        if: github.event_name == 'release'
-        uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: dist/v8-linux.zip
-          asset_name: v8-linux.zip
-          tag: ${{ github.ref }}
