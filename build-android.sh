@@ -8,6 +8,7 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
+
 # Get the value of the first argument
 ARCH="$1"
 
