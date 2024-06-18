@@ -25,6 +25,11 @@ jobs:
     #runs-on: ubuntu-latest
     runs-on: ubuntu-22.04
     steps:
+      - name: Clean up before build
+        run: |
+           sudo rm -rf /tmp/*
+           sudo rm -rf /var/tmp/*
+        
       - name: Show ubuntu libraries
         run: |
           if [[ -d "/usr/lib/i386-linux-gnu" ]]; then
