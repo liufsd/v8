@@ -8,6 +8,8 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
+echo "android build..."
+
 # Get the value of the first argument
 ARCH="$1"
 
